@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claire &amp; Gary — Wedding Planner</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Figtree:wght@400;500;600&display=swap">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#F3F5F2; --surface:#FFFFFF; --ink:#1D2622; --muted:#5A6761; --line:#D6DDD8;
+  --green:#2F5C4B; --green-soft:#E1EAE4; --on-green:#FFFFFF;
+  --berry:#A3324C; --berry-soft:#F6E3E8;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111614; --surface:#1A211E; --ink:#E7ECE9; --muted:#9BA9A2; --line:#2D3833;
+    --green:#8DBBA6; --green-soft:#24322C; --on-green:#10160F;
+    --berry:#E48399; --berry-soft:#3A2228;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111614; --surface:#1A211E; --ink:#E7ECE9; --muted:#9BA9A2; --line:#2D3833;
+  --green:#8DBBA6; --green-soft:#24322C; --on-green:#10160F;
+  --berry:#E48399; --berry-soft:#3A2228;
+  color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px}
+.hero{padding:36px 0 22px}
+.hero h1{font-family:"Cormorant Garamond",Georgia,"Times New Roman",serif;font-weight:600;font-size:clamp(3rem,13vw,4.75rem);line-height:.95;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:12px 0 22px;font-size:1.05rem}
+.stats{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.stat b{display:block;font-size:1.3rem;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat span{color:var(--muted);font-size:.85rem}
+.bar{height:6px;background:var(--green-soft);border-radius:3px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--green);transition:width .4s ease}
+@media (max-width:520px){.stats{grid-template-columns:1fr 1fr}.stat.wide{grid-column:1/-1;order:3}}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs .wrap{display:flex;gap:6px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+.tabs .wrap::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 15px;font:inherit;font-size:.95rem;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--green);border-color:var(--green);color:var(--on-green)}
+button:focus-visible,select:focus-visible,input[type=checkbox]:focus-visible,a:focus-visible{outline:2px solid var(--berry);outline-offset:2px}
+.banner{margin:14px 0 0;padding:10px 14px;border-radius:10px;background:var(--berry-soft);color:var(--berry);font-size:.95rem}
+main{padding-bottom:60px}
+.panel h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:2rem;margin:26px 0 4px}
+.panel h3{font-size:1rem;font-weight:600;margin:26px 0 10px}
+.lead{color:var(--muted);margin:0 0 14px;max-width:60ch}
+.list{display:flex;flex-direction:column;gap:8px}
+.list:empty::before{content:attr(data-empty);color:var(--muted);font-size:.95rem;padding:4px 2px}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 8px 8px 12px}
+.row.line{display:flex;gap:8px;align-items:flex-start}
+.row.line .grow{flex:1;min-width:0}
+.row.done .f-text{text-decoration:line-through;color:var(--muted)}
+.row.card .head{display:flex;gap:8px;align-items:flex-start}
+.row.card .head .grow{flex:1;min-width:0}
+.row.card .head .in{font-weight:600}
+.row.card .grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;padding:2px 36px 4px 0}
+.field{display:flex;flex-direction:column;font-size:.78rem;color:var(--muted);min-width:0}
+.field.full{grid-column:1/-1}
+.field.checkfield{flex-direction:row;align-items:center;gap:8px;font-size:.9rem;color:var(--ink);padding:6px 0}
+.in{font:inherit;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:8px;padding:5px 8px;width:100%;min-width:0;resize:none;overflow:hidden;line-height:1.45}
+.field .in{border-color:var(--line);font-size:.95rem}
+.in:hover{border-color:var(--line)}
+.in:focus{outline:none;border-color:var(--green);background:var(--bg)}
+select.in{appearance:auto;cursor:pointer}
+input[type=checkbox]{width:22px;height:22px;margin:6px 0 0;accent-color:var(--green);flex:none;cursor:pointer}
+.linkout{font-size:.85rem;color:var(--green);margin-top:4px;text-decoration:underline;overflow-wrap:anywhere}
+.del{flex:none;border:0;background:transparent;color:var(--muted);font:inherit;font-size:1.35rem;line-height:1;min-width:32px;height:32px;border-radius:8px;cursor:pointer}
+.del:hover{background:var(--berry-soft);color:var(--berry)}
+.del.arm{background:var(--berry-soft);color:var(--berry);font-size:.78rem;padding:0 10px}
+.row[data-status="Booked"],.row[data-status="Paid"]{border-left:4px solid var(--green)}
+.row[data-status="Chosen"]{border-left:4px solid var(--berry)}
+.row[data-status="Not using"]{opacity:.55}
+.add{display:flex;gap:8px;margin-top:10px}
+.add input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:9px 12px}
+.add input:focus{outline:none;border-style:solid;border-color:var(--green)}
+.btn{flex:none;font:inherit;font-weight:500;border:0;border-radius:10px;padding:9px 16px;background:var(--green);color:var(--on-green);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--green);border:1px dashed var(--line);width:100%;margin-top:10px}
+.facts{display:grid;gap:10px}
+.fact{display:flex;flex-direction:column;font-size:.8rem;color:var(--muted)}
+.fact .in{border-color:var(--line);background:var(--surface);font-size:1rem;padding:8px 10px}
+.fact .in:focus{background:var(--bg)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.static{background:var(--green-soft);border:1px solid transparent}
+.static b{font-weight:600}
+.totals{margin-top:14px;background:var(--surface);border:2px solid var(--green);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.totals b{font-size:1.4rem;font-variant-numeric:tabular-nums}
+.small{font-size:.85rem;color:var(--muted)}
+details summary{cursor:pointer;font-weight:600;margin:26px 0 10px}
+.ro .add,.ro .btn.ghost,.ro .del{display:none}
+@media (prefers-reduced-motion: reduce){.bar i{transition:none}}
+
+/* ---------- visual layer ---------- */
+:root{--gold:#A8834F;--sage:#A3BBAC;--blush:#E7C3CB;--blush-soft:#F8EBEE}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--gold:#D1B07E;--sage:#5F8070;--blush:#7C4A56;--blush-soft:#271D20}}
+:root[data-theme="dark"]{--gold:#D1B07E;--sage:#5F8070;--blush:#7C4A56;--blush-soft:#271D20}
+body{background:radial-gradient(900px 420px at 50% -120px,var(--blush-soft),transparent 70%),var(--bg);background-color:var(--bg)}
+.hero{padding:18px 0 22px}
+.hero-card{background:var(--surface);border-radius:26px 26px 0 0;padding:26px 18px 10px;text-align:center;border:1px solid var(--line);border-bottom:0}
+.scallop{height:14px;background:var(--surface);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='14'%3E%3Cpath fill-rule='evenodd' d='M0 0H24V3A12 11 0 0 1 0 3Z M12 3.2a2 2 0 1 0 .01 0Z'/%3E%3C/svg%3E") repeat-x 0 0/24px 14px;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='14'%3E%3Cpath fill-rule='evenodd' d='M0 0H24V3A12 11 0 0 1 0 3Z M12 3.2a2 2 0 1 0 .01 0Z'/%3E%3C/svg%3E") repeat-x 0 0/24px 14px}
+#wreath{width:190px;height:190px;margin:0 auto;display:block}
+.wr .stem{fill:none;stroke:var(--gold);stroke-width:1.2}
+.wr .leaf{fill:var(--sage)}
+.wr .leaf2{fill:var(--green)}
+.wr .berry{fill:var(--berry)}
+.wr .mono{font-family:"Cormorant Garamond",Georgia,serif;font-size:50px;font-weight:500;fill:var(--ink)}
+.wr .amp{font-family:"Cormorant Garamond",Georgia,serif;font-size:30px;font-style:italic;fill:var(--gold)}
+.hero h1{font-size:clamp(2.4rem,10vw,3.6rem);margin-top:6px}
+.sub{margin:8px 0 6px}
+.stats{margin-top:16px}
+.stat{border-radius:16px;position:relative}
+.stat .i{width:22px;height:22px;color:var(--gold);position:absolute;top:12px;right:12px}
+.ringstat{display:flex;align-items:center;gap:10px}
+.ring{width:48px;height:48px;flex:none;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:5}
+.ring .track{stroke:var(--green-soft)}
+.ring .fill{stroke:var(--green);stroke-linecap:round;transition:stroke-dashoffset .5s ease}
+.i{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tabs button{display:inline-flex;align-items:center;gap:7px}
+.tabs button .i{width:18px;height:18px}
+.panel h2{margin-top:30px}
+.panel h2::after{content:"";display:block;width:132px;height:16px;margin:6px 0 10px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 132 16'%3E%3Cg fill='none' stroke='%23A8834F' stroke-width='1.2' stroke-linecap='round'%3E%3Cpath d='M0 8H50M82 8H132'/%3E%3Cpath d='M52 8C58 2 62 2 66 8C70 14 74 14 80 8'/%3E%3C/g%3E%3Ccircle cx='66' cy='8' r='2.4' fill='%23A3324C'/%3E%3Cellipse cx='58' cy='4.5' rx='1.6' ry='3.4' transform='rotate(-50 58 4.5)' fill='%238DAE9C'/%3E%3Cellipse cx='74' cy='11.5' rx='1.6' ry='3.4' transform='rotate(-50 74 11.5)' fill='%238DAE9C'/%3E%3C/svg%3E") no-repeat left center/contain}
+#tab-todo{counter-reset:stage}
+#tab-todo h3{display:flex;align-items:center;gap:10px}
+#tab-todo h3::before{counter-increment:stage;content:counter(stage);flex:none;width:28px;height:28px;border-radius:50%;background:var(--green);color:var(--on-green);display:grid;place-items:center;font-size:.85rem;font-weight:600}
+.row{border-radius:14px}
+.row.line.done{background:var(--green-soft);border-color:transparent}
+.vicon{flex:none;width:40px;height:40px;border-radius:50%;background:var(--blush-soft);color:var(--berry);display:grid;place-items:center}
+.vicon .i{width:22px;height:22px}
+.row.card .grid{padding-left:48px}
+.vizcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:12px}
+.vizcard h3{margin:0 0 2px}
+.bviz{display:flex;height:18px;border-radius:9px;overflow:hidden;margin:10px 0 12px;background:var(--green-soft)}
+.bviz i{display:block;height:100%;min-width:3px;transition:flex-grow .4s ease}
+.bviz i+i{border-left:2px solid var(--surface)}
+.legend{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:.88rem}
+.legend .k{display:flex;align-items:center;gap:8px;min-width:0}
+.legend .k::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--dot)}
+.legend .v{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.illus{display:block;width:150px;height:auto;margin:4px 0 6px}
+.illus .urn{fill:var(--surface);stroke:var(--gold);stroke-width:1.5}
+.illus .l1{fill:var(--sage)} .illus .l2{fill:var(--green)} .illus .b1{fill:var(--blush)} .illus .b2{fill:var(--berry)}
+.totals{border-radius:16px;background:var(--green);border-color:var(--green);color:var(--on-green)}
+.totals span{font-weight:500}
+@media (max-width:520px){.row.card .grid{padding:2px 0 4px 0}.row.card .grid .field{grid-column:1/-1}.row.card .grid .field.half{grid-column:auto}}
+.login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px}
+.login[hidden]{display:none}
+.login-card{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:26px 22px;text-align:center}
+.login-card h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:600;font-size:2rem;margin:4px 0 4px}
+.login-card p{color:var(--muted);margin:0 0 16px}
+.login-card input{display:block;width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin:0 0 10px}
+.login-card input:focus{outline:none;border-color:var(--green)}
+.login-card .btn{width:100%;padding:12px}
+.login-err{color:var(--berry);font-size:.9rem;min-height:1.3em;margin-top:10px}
+.foot{text-align:center;margin:30px 0 10px}
+.linkbtn{background:none;border:0;font:inherit;color:var(--muted);text-decoration:underline;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="login" id="login">
+  <div class="login-card">
+    <svg id="wreathSmall" class="wr" viewBox="0 0 200 200" width="110" height="110" aria-hidden="true"></svg>
+    <h2>Claire &amp; Gary</h2>
+    <p>Sign in to see your wedding plan.</p>
+    <input id="email" type="email" autocomplete="username" placeholder="Email" aria-label="Email">
+    <input id="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password">
+    <button class="btn" id="signin" type="button">Sign in</button>
+    <div class="login-err" id="loginErr" role="alert"></div>
+  </div>
+</div>
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-card">
+      <svg id="wreath" class="wr" viewBox="0 0 200 200" role="img" aria-label="Wreath with the initials C and G"></svg>
+      <h1>Claire &amp; Gary</h1>
+      <p class="sub" id="heroSub">Loading your plan…</p>
+    </div>
+    <div class="scallop" aria-hidden="true"></div>
+    <div class="stats">
+      <div class="stat ringstat">
+        <svg class="ring" viewBox="0 0 48 48" aria-hidden="true"><circle class="track" cx="24" cy="24" r="19"/><circle class="fill" id="ringFill" cx="24" cy="24" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4"/></svg>
+        <div><b id="statTasks">–</b><span>tasks done</span></div>
+      </div>
+      <div class="stat wide"><span data-icon="coin"></span><b id="statBudget">–</b><span>budget priced so far</span></div>
+      <div class="stat"><span data-icon="heart"></span><b id="statDays">–</b><span id="statDaysLabel">days to go</span></div>
+    </div>
+  </header>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+  <div class="wrap" role="tablist">
+    <button role="tab" data-tab="overview" aria-selected="true"><span data-icon="heart"></span>Basics</button>
+    <button role="tab" data-tab="todo" aria-selected="false"><span data-icon="list"></span>To do</button>
+    <button role="tab" data-tab="vendors" aria-selected="false"><span data-icon="people"></span>Vendors</button>
+    <button role="tab" data-tab="budget" aria-selected="false"><span data-icon="coin"></span>Budget</button>
+    <button role="tab" data-tab="decor" aria-selected="false"><span data-icon="flower"></span>Flowers &amp; decor</button>
+    <button role="tab" data-tab="check" aria-selected="false"><span data-icon="search"></span>To double-check</button>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div id="banner" class="banner" hidden></div>
+  <div id="seedBox" class="vizcard" hidden style="margin-top:14px"><h3>Your plan is empty</h3><p class="small">Import the plan built from your wedding document. Pick the starter-plan.json file. This only needs doing once.</p><button class="btn" id="seedBtn" type="button" style="margin-top:10px">Import starter-plan.json</button></div>
+
+  <section class="panel" id="tab-overview">
+    <h2>The basics</h2>
+    <p class="lead">Tap any detail to change it. It saves when you tap away, and you'll both see the change.</p>
+    <div class="facts" id="facts"></div>
+  </section>
+
+  <section class="panel" id="tab-todo" hidden>
+    <h2>To do</h2>
+    <p class="lead">Tick things off as you go. Book the people who sell out first.</p>
+    <h3>Do now, by end of October 2026</h3>
+    <div class="list" id="todo-1" data-empty="All done here."></div>
+    <div class="add"><input data-stage="1" placeholder="Add a task" aria-label="Add a task to do now"><button class="btn" data-addtask="1">Add</button></div>
+    <h3>Next, November to December 2026</h3>
+    <div class="list" id="todo-2" data-empty="All done here."></div>
+    <div class="add"><input data-stage="2" placeholder="Add a task" aria-label="Add a task for November to December"><button class="btn" data-addtask="2">Add</button></div>
+    <h3>Final month, January 2027</h3>
+    <div class="list" id="todo-3" data-empty="All done here."></div>
+    <div class="add"><input data-stage="3" placeholder="Add a task" aria-label="Add a task for the final month"><button class="btn" data-addtask="3">Add</button></div>
+    <details id="doneBox"><summary>Done (<span id="doneCount">0</span>)</summary>
+      <div class="list" id="todo-done" data-empty="Nothing ticked off yet."></div>
+    </details>
+  </section>
+
+  <section class="panel" id="tab-vendors" hidden>
+    <h2>Vendors</h2>
+    <p class="lead">Change the status as you book. A green edge means booked or paid; pink means chosen but not booked.</p>
+    <div class="list" id="list-vendors" data-empty="No vendors yet."></div>
+    <button class="btn ghost" data-add="vendors">Add a vendor</button>
+  </section>
+
+  <section class="panel" id="tab-budget" hidden>
+    <h2>Budget</h2>
+    <p class="lead">All amounts in AUD. The venue line works itself out from the guest number and price per guest on the Basics tab.</p>
+    <div class="vizcard"><h3>Where the money goes</h3><p class="small" style="margin:0">Mid-point of each range, for lines counted in the total.</p><div class="bviz" id="bviz" role="img" aria-label="Budget breakdown"></div><div class="legend" id="legend"></div></div>
+    <div class="list"><div class="row static" id="venueRow"></div></div>
+    <div class="list" id="list-budget" data-empty="No budget lines yet." style="margin-top:8px"></div>
+    <button class="btn ghost" data-add="budget">Add a budget line</button>
+    <div class="totals"><span>Total so far</span><b id="budgetTotal">–</b></div>
+    <p class="small">Only lines with "Count in total" ticked are added up.</p>
+  </section>
+
+  <section class="panel" id="tab-decor" hidden>
+    <h2>Flowers &amp; decor</h2>
+    <svg class="illus" viewBox="0 0 150 96" aria-hidden="true">
+      <ellipse class="l1" cx="46" cy="30" rx="6" ry="16" transform="rotate(-40 46 30)"/><ellipse class="l2" cx="104" cy="30" rx="6" ry="16" transform="rotate(40 104 30)"/>
+      <ellipse class="l2" cx="58" cy="18" rx="5" ry="13" transform="rotate(-15 58 18)"/><ellipse class="l1" cx="92" cy="18" rx="5" ry="13" transform="rotate(15 92 18)"/>
+      <circle class="b1" cx="62" cy="36" r="11"/><circle class="b1" cx="88" cy="36" r="11"/><circle class="b2" cx="75" cy="28" r="12"/>
+      <circle class="b1" cx="75" cy="44" r="8"/><circle class="b2" cx="52" cy="44" r="5"/><circle class="b2" cx="98" cy="44" r="5"/>
+      <path class="urn" d="M50 50h50c0 14-8 22-17 25v6h8v6H59v-6h8v-6c-9-3-17-11-17-25z"/>
+    </svg>
+    <p class="lead">Show the flowers list to the florist. Most ceremony pieces move to the reception, so you pay for them once.</p>
+    <h3>Flowers</h3>
+    <div class="list" id="list-florals" data-empty="No flowers listed yet."></div>
+    <button class="btn ghost" data-add="florals">Add a flower piece</button>
+    <h3>Signs and furniture</h3>
+    <div class="list" id="list-signage" data-empty="No signs or furniture listed yet."></div>
+    <button class="btn ghost" data-add="signage">Add an item</button>
+  </section>
+
+  <section class="panel" id="tab-check" hidden>
+    <h2>To double-check</h2>
+    <p class="lead">The original plan disagrees with itself in a few places. Tick each one once you've agreed on it.</p>
+    <div class="list" id="list-checks" data-empty="Nothing to check."></div>
+    <button class="btn ghost" data-add="checks">Add something to check</button>
+  </section>
+  <div class="foot"><button class="linkbtn" id="signout" type="button">Sign out</button></div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var db = null, readOnly = false, pendingFocus = null;
+  var COLLS = ["tasks","vendors","budget","florals","signage","checks"];
+  var state = { info:{}, tasks:[], vendors:[], budget:[], florals:[], signage:[], checks:[] };
+
+  var FIELDS = {
+    tasks:   [{k:"done",t:"check",label:"Done"},{k:"text",t:"area",ph:"Task",cls:"f-text"}],
+    checks:  [{k:"done",t:"check",label:"Sorted"},{k:"text",t:"area",ph:"Something to check",cls:"f-text"}],
+    vendors: [{k:"service",t:"text",ph:"Service, e.g. Cake"},{k:"name",t:"text",label:"Vendor",ph:"Vendor name"},
+              {k:"status",t:"select",label:"Status",options:["Comparing","Chosen","Booked","Paid","Not using"]},
+              {k:"quote",t:"text",label:"Quote",ph:"e.g. $1,200",full:true},
+              {k:"notes",t:"area",label:"Notes",ph:"Anything to remember",full:true},
+              {k:"link",t:"url",label:"Link",ph:"Website or Instagram",full:true}],
+    budget:  [{k:"item",t:"text",ph:"What it's for"},{k:"low",t:"number",label:"Low (AUD)"},{k:"high",t:"number",label:"High (AUD)"},
+              {k:"note",t:"area",label:"How it's worked out",full:true},{k:"include",t:"check",label:"Count in total",full:true}],
+    florals: [{k:"item",t:"text",ph:"Flower piece"},{k:"qty",t:"text",label:"How many"},{k:"ceremony",t:"area",label:"Ceremony, or who it's for"},
+              {k:"reception",t:"area",label:"Then at the reception",full:true}],
+    signage: [{k:"item",t:"text",ph:"Item"},{k:"qty",t:"text",label:"How many"},{k:"where",t:"area",label:"Where it goes"}]
+  };
+  var DEFAULTS = {
+    vendors:{service:"",name:"",status:"Comparing",quote:"",notes:"",link:""},
+    budget:{item:"",low:0,high:0,note:"",include:true},
+    florals:{item:"",qty:"",ceremony:"",reception:""},
+    signage:{item:"",qty:"",where:""},
+    checks:{text:"",done:false}
+  };
+  var INFO_FIELDS = [
+    {k:"date",t:"date",label:"Wedding date"},
+    {k:"ceremony",t:"area",label:"Ceremony"},
+    {k:"reception",t:"area",label:"Reception"},
+    {k:"contact",t:"text",label:"Venue contact"},
+    {pair:[{k:"guests",t:"number",label:"Guests"},{k:"pricePP",t:"number",label:"Venue price per guest (AUD)"}]},
+    {k:"party",t:"area",label:"Bridal party"},
+    {k:"style",t:"area",label:"Style"},
+    {k:"seating",t:"area",label:"Seating"},
+    {k:"notes",t:"area",label:"Notes"}
+  ];
+
+  var aud = function(n){ return new Intl.NumberFormat("en-AU",{style:"currency",currency:"AUD",maximumFractionDigits:0}).format(Number(n)||0); };
+  var num = function(v){ var n = Number(v); return isFinite(n) ? n : 0; };
+
+  var ICONS = {
+    heart:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+    list:'<path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 6l1.2 1.2L7.5 5M4 12l1.2 1.2L7.5 11M4 18l1.2 1.2L7.5 17"/>',
+    people:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c3 0 5 2 5 5"/>',
+    coin:'<circle cx="12" cy="12" r="9"/><path d="M15 9.2c-.5-1-1.6-1.6-3-1.6-1.8 0-3 .9-3 2.2 0 3 6 1.6 6 4.6 0 1.3-1.2 2.2-3 2.2-1.4 0-2.5-.6-3-1.6M12 6v1.6M12 16.4V18"/>',
+    flower:'<circle cx="12" cy="6" r="2.4"/><circle cx="15.6" cy="8.6" r="2.4"/><circle cx="14.2" cy="12.8" r="2.4"/><circle cx="9.8" cy="12.8" r="2.4"/><circle cx="8.4" cy="8.6" r="2.4"/><path d="M12 15.5V22M12 19c-2.5 0-3.5-1.5-3.5-2.5"/>',
+    search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4M8 11l2 2 4-4"/>',
+    venue:'<path d="M3 10l9-6 9 6M5 10v9M19 10v9M10 19v-5h4v5M3 20h18"/>',
+    dress:'<path d="M9.5 3l.8 4L7 20h10L13.7 7l.8-4M10.3 7h3.4"/>',
+    makeup:'<path d="M15 3l6 6-7.5 7.5-6-6z"/><path d="M7.5 10.5L3 21l10.5-4.5"/>',
+    hair:'<circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.8L20 19M8.5 15.2L20 5"/>',
+    camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+    video:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>',
+    music:'<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+    palette:'<path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-2 0-3 2-1 3-1 4-1 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7" r="1"/>',
+    mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>',
+    cake:'<path d="M5 21v-7h14v7M3 21h18M7 14v-3h10v3M12 11V8.5"/><path d="M12 5c.9.9.9 2 0 3-.9-1-.9-2.1 0-3z"/>',
+    sparkle:'<path d="M12 3l1.8 5.7L19.5 10.5l-5.7 1.8L12 18l-1.8-5.7L4.5 10.5l5.7-1.8z"/><path d="M19 17l.6 1.9 1.9.6-1.9.6L19 22l-.6-1.9-1.9-.6 1.9-.6z"/>'
+  };
+  function icon(n){ return '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">'+(ICONS[n]||ICONS.heart)+'</svg>'; }
+  function serviceIcon(sv){
+    var t=(sv||"").toLowerCase();
+    var map=[["venue","venue"],["dress","dress"],["makeup","makeup"],["hair","hair"],["video","video"],["film","video"],["photo","camera"],
+             ["music","music"],["band","music"],["dj","music"],["host","mic"],["mc","mic"],["cake","cake"],["flor","flower"],["flower","flower"],
+             ["gift","palette"],["illustr","palette"],["styl","sparkle"],["decor","sparkle"]];
+    for(var i=0;i<map.length;i++){ if(t.indexOf(map[i][0])>-1) return map[i][1]; }
+    return "heart";
+  }
+  function hydrateIcons(){ document.querySelectorAll("[data-icon]").forEach(function(el){ el.outerHTML = icon(el.dataset.icon); }); }
+  function drawWreath(){
+    var cx=100, cy=100, r=72, n=36, out='<circle class="stem" cx="100" cy="100" r="72"/>';
+    for(var i=0;i<n;i++){
+      var deg=i*360/n-90; if(Math.abs(deg-90)<14) continue;
+      var a=deg*Math.PI/180, x=(cx+r*Math.cos(a)).toFixed(1), y=(cy+r*Math.sin(a)).toFixed(1);
+      var c1=i%3===0?' leaf2':'', c2=i%3===1?' leaf2':'';
+      out+='<ellipse class="leaf'+c1+'" cx="'+x+'" cy="'+y+'" rx="3.4" ry="8.5" transform="rotate('+(deg+90+38).toFixed(1)+' '+x+' '+y+') translate(0 -8)"/>';
+      out+='<ellipse class="leaf'+c2+'" cx="'+x+'" cy="'+y+'" rx="3.4" ry="8.5" transform="rotate('+(deg+270+38).toFixed(1)+' '+x+' '+y+') translate(0 -8)"/>';
+      if(i%4===2) out+='<circle class="berry" cx="'+x+'" cy="'+y+'" r="3.2"/>';
+    }
+    out+='<path class="stem" d="M86 170c6 4 10 6 14 6s8-2 14-6"/><circle class="berry" cx="100" cy="176" r="3.6"/>';
+    out+='<text class="mono" x="72" y="112" text-anchor="middle">C</text><text class="amp" x="100" y="110" text-anchor="middle">&amp;</text><text class="mono" x="128" y="112" text-anchor="middle">G</text>';
+    document.getElementById("wreath").innerHTML=out;
+    var sm=document.getElementById("wreathSmall"); if(sm) sm.innerHTML=out;
+  }
+
+  function showBanner(msg){ var b=$("#banner"); if(!msg){ b.hidden=true; return; } b.textContent=msg; b.hidden=false; }
+
+  function autosize(el){ if(el.tagName!=="TEXTAREA"||!el.offsetParent) return; el.style.height="auto"; el.style.height=el.scrollHeight+"px"; }
+  function autosizeIn(root){ root.querySelectorAll("textarea").forEach(autosize); }
+
+  function readValue(el, t){
+    if(t==="check") return el.checked;
+    if(t==="number") return el.value==="" ? 0 : num(el.value);
+    return el.value.trim();
+  }
+  function setValue(el, t, v){
+    if(el===document.activeElement) return;
+    if(t==="check") el.checked = !!v;
+    else { var s = (v===undefined||v===null) ? "" : String(v); if(el.value!==s) el.value = s; }
+    if(el.tagName==="TEXTAREA") autosize(el);
+  }
+
+  function makeInput(f){
+    var el;
+    if(f.t==="check"){ el=document.createElement("input"); el.type="checkbox"; }
+    else if(f.t==="area"){ el=document.createElement("textarea"); el.rows=1; el.className="in"; el.addEventListener("input",function(){autosize(el);}); }
+    else if(f.t==="select"){ el=document.createElement("select"); el.className="in"; f.options.forEach(function(o){ var op=document.createElement("option"); op.value=o; op.textContent=o; el.appendChild(op); }); }
+    else { el=document.createElement("input"); el.className="in"; el.type = f.t==="number" ? "number" : (f.t==="date" ? "date" : (f.t==="url" ? "url" : "text")); if(f.t==="number"){ el.inputMode="decimal"; el.min="0"; } }
+    if(f.cls) el.classList.add(f.cls);
+    if(f.ph) el.placeholder=f.ph;
+    el.dataset.key=f.k; el.dataset.t=f.t;
+    if(!f.label || f.t==="check") el.setAttribute("aria-label", f.label || f.ph || f.k);
+    if(f.t==="area" && f.cls==="f-text"){
+      el.addEventListener("keydown",function(e){ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); el.blur(); } });
+    }
+    return el;
+  }
+
+  function wrapField(f, el){
+    if(f.t==="check"){ var l=document.createElement("label"); l.className="field checkfield"+(f.full?" full":""); l.appendChild(el); l.appendChild(document.createTextNode(f.label)); return l; }
+    var w=document.createElement("label"); w.className="field"+(f.full?" full":"")+((f.t==="number"||f.t==="select"||f.k==="qty")?" half":"");
+    var s=document.createElement("span"); s.textContent=f.label; w.appendChild(s); w.appendChild(el);
+    if(f.t==="url"){ var a=document.createElement("a"); a.className="linkout"; a.target="_blank"; a.rel="noopener"; a.hidden=true; a.textContent="Open link"; w.appendChild(a); }
+    return w;
+  }
+
+  function delButton(coll, id){
+    var b=document.createElement("button"); b.className="del"; b.type="button"; b.textContent="×"; b.setAttribute("aria-label","Remove");
+    var timer=null;
+    b.addEventListener("click",function(){
+      if(readOnly) return;
+      if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent="Tap again to remove"; timer=setTimeout(function(){ b.classList.remove("arm"); b.textContent="×"; },3000); return; }
+      clearTimeout(timer); remove(coll,id);
+    });
+    return b;
+  }
+
+  function buildRow(coll, id, fields, card){
+    var row=document.createElement("div"); row.dataset.id=id;
+    if(!card){
+      row.className="row line";
+      fields.forEach(function(f){ var el=makeInput(f); if(f.t!=="check") el.classList.add("grow"); row.appendChild(el); });
+      row.appendChild(delButton(coll,id));
+    } else {
+      row.className="row card";
+      var head=document.createElement("div"); head.className="head";
+      if(coll==="vendors"){ var vi=document.createElement("span"); vi.className="vicon"; head.appendChild(vi); }
+      var first=makeInput(fields[0]); first.classList.add("grow"); head.appendChild(first); head.appendChild(delButton(coll,id));
+      var grid=document.createElement("div"); grid.className="grid";
+      fields.slice(1).forEach(function(f){ grid.appendChild(wrapField(f, makeInput(f))); });
+      row.appendChild(head); row.appendChild(grid);
+    }
+    row.addEventListener("change",function(e){
+      var el=e.target; if(!el.dataset||!el.dataset.key) return;
+      var patch={}; patch[el.dataset.key]=readValue(el, el.dataset.t);
+      if(el.dataset.key==="done") row.classList.toggle("done", !!patch.done);
+      save(coll,id,patch);
+    });
+    return row;
+  }
+
+  function fillRow(row, item){
+    row.querySelectorAll("[data-key]").forEach(function(el){
+      setValue(el, el.dataset.t, item[el.dataset.key]);
+      if(el.dataset.t==="url"){ var a=el.parentNode.querySelector(".linkout"); var v=(item.link||"").trim();
+        if(v){ a.href = /^https?:\/\//i.test(v) ? v : "https://"+v; a.hidden=false; } else a.hidden=true; }
+    });
+    row.classList.toggle("done", !!item.done);
+    if(item.status!==undefined) row.dataset.status = item.status||"";
+    var vi=row.querySelector(".vicon");
+    if(vi){ var ic=serviceIcon(item.service); if(vi.dataset.ic!==ic){ vi.dataset.ic=ic; vi.innerHTML=icon(ic); } }
+  }
+
+  function reconcile(container, coll, items, fields, card){
+    var existing=new Map();
+    Array.prototype.forEach.call(container.children,function(el){ if(el.dataset.id) existing.set(el.dataset.id,el); });
+    var prev=null;
+    items.forEach(function(item){
+      var row=existing.get(item.id), fresh=false;
+      if(!row){ row=buildRow(coll,item.id,fields,card); fresh=true; }
+      existing.delete(item.id);
+      var want = prev ? prev.nextSibling : container.firstChild;
+      if(row!==want) container.insertBefore(row,want);
+      fillRow(row,item);
+      if(fresh && pendingFocus===item.id){ pendingFocus=null; var f=row.querySelector("input.in,textarea"); if(f) f.focus(); }
+      prev=row;
+    });
+    existing.forEach(function(el){ el.remove(); });
+    applyReadOnly(container);
+  }
+
+  function sorted(arr){ return arr.slice().sort(function(a,b){ return num(a.order)-num(b.order) || (a.id<b.id?-1:1); }); }
+
+  // ---------- renders ----------
+  function renderTasks(){
+    var all=sorted(state.tasks);
+    [1,2,3].forEach(function(s){ reconcile($("#todo-"+s),"tasks",all.filter(function(t){ return !t.done && num(t.stage)===s; }),FIELDS.tasks,false); });
+    var done=all.filter(function(t){ return t.done; });
+    reconcile($("#todo-done"),"tasks",done,FIELDS.tasks,false);
+    $("#doneCount").textContent=done.length;
+  }
+  function renderList(coll){ reconcile($("#list-"+coll),coll,sorted(state[coll]),FIELDS[coll],coll!=="checks"); }
+
+  function venueCost(){ return num(state.info.guests)*num(state.info.pricePP); }
+  function budgetTotals(){
+    var lo=venueCost(), hi=lo;
+    state.budget.forEach(function(b){ if(b.include){ lo+=num(b.low); hi+=num(b.high); } });
+    return {lo:lo,hi:hi};
+  }
+  function renderBudget(){
+    renderList("budget");
+    var v=$("#venueRow");
+    v.innerHTML="";
+    var t=document.createElement("div"); t.innerHTML="<b>Venue</b>";
+    var d=document.createElement("div"); d.className="small";
+    d.textContent = num(state.info.guests)+" guests × "+aud(state.info.pricePP)+" = "+aud(venueCost());
+    var n=document.createElement("div"); n.className="small"; n.textContent="Change guests or price on the Basics tab.";
+    v.appendChild(t); v.appendChild(d); v.appendChild(n);
+    var tot=budgetTotals();
+    var colours=["var(--green)","var(--berry)","var(--gold)","var(--sage)","var(--blush)","var(--muted)"];
+    var parts=[{name:"Venue",v:venueCost()}];
+    sorted(state.budget).forEach(function(b){ if(b.include){ var m=(num(b.low)+num(b.high))/2; if(m>0) parts.push({name:b.item||"Unnamed",v:m}); } });
+    var sum=parts.reduce(function(a,p){ return a+p.v; },0);
+    var bv=$("#bviz"), lg=$("#legend"); bv.innerHTML=""; lg.innerHTML="";
+    parts.forEach(function(p,i){
+      if(p.v<=0) return;
+      var c=colours[i%colours.length];
+      var seg=document.createElement("i"); seg.style.flexGrow=p.v; seg.style.background=c; seg.title=p.name; bv.appendChild(seg);
+      var k=document.createElement("span"); k.className="k"; k.style.setProperty("--dot",c); k.textContent=p.name;
+      var val=document.createElement("span"); val.className="v"; val.textContent=aud(p.v)+(sum?" ("+Math.round(p.v/sum*100)+"%)":"");
+      lg.appendChild(k); lg.appendChild(val);
+    });
+    $("#budgetTotal").textContent = tot.lo===tot.hi ? aud(tot.lo) : aud(tot.lo)+" – "+aud(tot.hi);
+  }
+
+  var infoBuilt=false;
+  function buildInfo(){
+    var box=$("#facts");
+    INFO_FIELDS.forEach(function(f){
+      if(f.pair){ var two=document.createElement("div"); two.className="two"; f.pair.forEach(function(p){ two.appendChild(infoField(p)); }); box.appendChild(two); }
+      else box.appendChild(infoField(f));
+    });
+    infoBuilt=true;
+  }
+  function infoField(f){
+    var w=document.createElement("label"); w.className="fact";
+    var s=document.createElement("span"); s.textContent=f.label; w.appendChild(s);
+    var el=makeInput(f); w.appendChild(el);
+    el.addEventListener("change",function(){ var p={}; p[f.k]=readValue(el,f.t); saveInfo(p); });
+    return w;
+  }
+  function renderInfo(){
+    if(!infoBuilt) buildInfo();
+    $("#facts").querySelectorAll("[data-key]").forEach(function(el){ setValue(el, el.dataset.t, state.info[el.dataset.key]); });
+    applyReadOnly($("#facts"));
+  }
+
+  function parseDate(s){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||""); return m ? new Date(+m[1],+m[2]-1,+m[3]) : null; }
+  function renderHero(){
+    var d=parseDate(state.info.date);
+    var place=(state.info.reception||"").split(/[,(—-]/)[0].trim();
+    var when;
+    if(d){ var wd=new Intl.DateTimeFormat("en-AU",{weekday:"long"}).format(d);
+      when = wd+" "+String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear(); }
+    else when = "Date to be set";
+    $("#heroSub").textContent = place ? when+", "+place : when;
+    var total=state.tasks.length, done=state.tasks.filter(function(t){ return t.done; }).length;
+    $("#statTasks").textContent = done+" of "+total;
+    $("#ringFill").setAttribute("stroke-dashoffset", (119.4*(1-(total?done/total:0))).toFixed(1));
+    var tot=budgetTotals();
+    $("#statBudget").textContent = tot.lo===tot.hi ? aud(tot.lo) : aud(tot.lo)+"–"+aud(tot.hi);
+    if(d){ var today=new Date(); today.setHours(0,0,0,0); var days=Math.round((d-today)/86400000);
+      $("#statDays").textContent = days>=0 ? days : "Married";
+      $("#statDaysLabel").textContent = days>=0 ? "days to go" : "and counting"; }
+    else { $("#statDays").textContent="Set date"; $("#statDaysLabel").textContent="on the Basics tab"; }
+  }
+
+  // ---------- writes ----------
+  function onWriteError(e){
+    if(e && e.code==="permission-denied"){ setReadOnly(); return; }
+    if(e && e.code==="resource-exhausted"){ showBanner("The free daily limit has been reached. Try again tomorrow."); return; }
+    showBanner("That change didn't save. Check your connection and try again.");
+  }
+  async function save(coll,id,patch){
+    if(readOnly||!db) return;
+    patch.updatedAt=Date.now();
+    try{ await db.collection(coll).doc(id).update(patch); showBanner(""); }catch(e){ onWriteError(e); }
+  }
+  async function saveInfo(patch){
+    if(readOnly||!db) return;
+    var ref=db.doc("meta/info");
+    try{ await ref.set(patch,{merge:true}); showBanner(""); }catch(e){ onWriteError(e); }
+  }
+  async function create(coll,data){
+    if(readOnly||!db) return;
+    var ref=db.collection(coll).doc(); pendingFocus=ref.id;
+    try{ await ref.set(Object.assign({}, DEFAULTS[coll]||{}, data, {order:Date.now(), updatedAt:Date.now()})); showBanner(""); }
+    catch(e){ pendingFocus=null; onWriteError(e); }
+  }
+  async function remove(coll,id){
+    if(readOnly||!db) return;
+    try{ await db.collection(coll).doc(id).delete(); }catch(e){ onWriteError(e); }
+  }
+
+  function setReadOnly(){
+    readOnly=true; document.body.classList.add("ro");
+    showBanner("This account can't change the plan. Sign in with Gary's or Claire's account.");
+    applyReadOnly(document);
+  }
+  function applyReadOnly(root){
+    if(!readOnly) return;
+    root.querySelectorAll("main input, main textarea, main select, #facts input, #facts textarea").forEach(function(el){ el.disabled=true; });
+  }
+
+  // ---------- add controls ----------
+  document.querySelectorAll("[data-addtask]").forEach(function(btn){
+    var stage=+btn.dataset.addtask, input=btn.parentNode.querySelector("input");
+    function go(){ var v=input.value.trim(); if(!v) { input.focus(); return; } input.value=""; pendingFocus=null;
+      var ref=db && db.collection("tasks").doc(); if(!ref||readOnly) return;
+      ref.set({text:v,stage:stage,done:false,order:Date.now(),updatedAt:Date.now()}).catch(onWriteError); }
+    btn.addEventListener("click",go);
+    input.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); go(); } });
+  });
+  document.querySelectorAll("[data-add]").forEach(function(btn){
+    btn.addEventListener("click",function(){ create(btn.dataset.add,{}); });
+  });
+
+  // ---------- tabs ----------
+  function showTab(name){
+    document.querySelectorAll(".tabs button").forEach(function(b){ b.setAttribute("aria-selected", String(b.dataset.tab===name)); });
+    document.querySelectorAll(".panel").forEach(function(p){ p.hidden = p.id!=="tab-"+name; });
+    autosizeIn($("#tab-"+name));
+    try{ localStorage.setItem("wp-tab",name); }catch(e){}
+  }
+  document.querySelectorAll(".tabs button").forEach(function(b){ b.addEventListener("click",function(){ showTab(b.dataset.tab); window.scrollTo({top:$(".tabs").offsetTop, behavior:"auto"}); }); });
+  $("#doneBox").addEventListener("toggle",function(){ autosizeIn($("#doneBox")); });
+  try{ var saved=localStorage.getItem("wp-tab"); if(saved && $("#tab-"+saved)) showTab(saved); }catch(e){}
+  window.addEventListener("resize",function(){ document.querySelectorAll(".panel:not([hidden])").forEach(autosizeIn); });
+
+  // ---------- connect ----------
+  var FIREBASE_CONFIG = {
+    // PASTE YOUR FIREBASE WEB APP CONFIG HERE (Firebase console > Project settings > Your apps)
+    apiKey: "AIzaSyAHlI7WzEwrCqDQfOOIx1Ldf1UgVU6Kpkw",
+    authDomain: "claire-gary-wedding.firebaseapp.com",
+    projectId: "claire-gary-wedding",
+    appId: "1:964509992178:web:1bc17f17729923f2c53c6b"
+  };
+
+  var unsubs=[], loaded={};
+  function onSubError(e){
+    if(e && e.code==="permission-denied"){ showBanner("This account doesn't have access to the plan. Sign in with Gary's or Claire's account."); return; }
+    showBanner("Lost connection to the shared plan. Reload the page to reconnect.");
+  }
+  function maybeOfferSeed(){
+    if(!loaded.info||!loaded.tasks||!loaded.vendors) return;
+    $("#seedBox").hidden = !(Object.keys(state.info).length===0 && state.tasks.length===0 && state.vendors.length===0);
+  }
+  async function seedFrom(STARTER){
+    var btn=$("#seedBtn"); btn.disabled=true; btn.textContent="Importing…";
+    try{
+      if(!STARTER||typeof STARTER.info!=="object"||!STARTER.tasks) throw {code:"bad-file"};
+      var batch=db.batch();
+      batch.set(db.doc("meta/info"), STARTER.info);
+      COLLS.forEach(function(c){ Object.keys(STARTER[c]||{}).forEach(function(id){ batch.set(db.collection(c).doc(id), STARTER[c][id]); }); });
+      await batch.commit();
+      $("#seedBox").hidden=true;
+    }catch(e){
+      btn.disabled=false; btn.textContent="Import starter-plan.json";
+      if(e&&e.code==="bad-file") showBanner("That file isn't the starter plan. Pick starter-plan.json.");
+      else onWriteError(e);
+    }
+  }
+  function pickSeed(){
+    var inp=document.createElement("input"); inp.type="file"; inp.accept=".json,application/json";
+    inp.addEventListener("change",function(){
+      var f=inp.files&&inp.files[0]; if(!f) return;
+      var r=new FileReader();
+      r.onload=function(){ var data=null; try{ data=JSON.parse(r.result); }catch(e){} seedFrom(data); };
+      r.readAsText(f);
+    });
+    inp.click();
+  }
+  function subscribe(){
+    unsubs.push(db.doc("meta/info").onSnapshot(function(s){
+      state.info = s.exists ? Object.assign({}, s.data()) : {};
+      loaded.info=true; maybeOfferSeed();
+      renderInfo(); renderBudget(); renderHero();
+    }, onSubError));
+    COLLS.forEach(function(coll){
+      unsubs.push(db.collection(coll).onSnapshot(function(snap){
+        state[coll]=snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
+        loaded[coll]=true; maybeOfferSeed();
+        if(coll==="tasks") renderTasks();
+        else if(coll==="budget") renderBudget();
+        else renderList(coll);
+        renderHero();
+        document.querySelectorAll(".panel:not([hidden])").forEach(autosizeIn);
+      }, onSubError));
+    });
+  }
+  function start(){
+    if(!window.firebase){ $("#loginErr").textContent="Couldn't load the sign-in service. Check your connection and reload."; return; }
+    if(FIREBASE_CONFIG.apiKey.indexOf("PASTE")===0){ $("#loginErr").textContent="Setup not finished: add the Firebase config to index.html."; return; }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    var auth=firebase.auth();
+    function signIn(){
+      var em=$("#email").value.trim(), pw=$("#password").value;
+      if(!em||!pw){ $("#loginErr").textContent="Enter your email and password."; return; }
+      $("#loginErr").textContent=""; $("#signin").disabled=true;
+      auth.signInWithEmailAndPassword(em,pw).catch(function(e){
+        $("#signin").disabled=false;
+        $("#loginErr").textContent = (e.code==="auth/too-many-requests") ? "Too many attempts. Wait a few minutes and try again." : "That email or password isn't right.";
+      });
+    }
+    $("#signin").addEventListener("click",signIn);
+    $("#password").addEventListener("keydown",function(e){ if(e.key==="Enter") signIn(); });
+    $("#signout").addEventListener("click",function(){ auth.signOut(); });
+    $("#seedBtn").addEventListener("click",pickSeed);
+    auth.onAuthStateChanged(function(user){
+      if(user){
+        $("#login").hidden=true; $("#signin").disabled=false;
+        if(!db){ db=firebase.firestore(); subscribe(); }
+      } else {
+        unsubs.forEach(function(u){ u(); }); unsubs=[]; db=null; loaded={};
+        $("#login").hidden=false; $("#password").value="";
+      }
+    });
+  }
+  hydrateIcons();
+  drawWreath();
+  start();
+})();
+</script>
+</body>
+</html>
